@@ -15,18 +15,17 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'users')]
-// #[ORM\UniqueEntity(fields: ['email'], message: 'There is already an account with this email')]
 #[UniqueEntity(fields: ['email'], message: 'Email already in use')] 
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read', 'user:embed'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 100)]
-    #[Groups(['user:read'])]
+    #[Groups(['user:read', 'user:embed'])]
     #[Assert\NotBlank(message: 'Name is required')]
     #[Assert\Length(min: 3, max: 100, minMessage: 'Name must be at least 3 character long', maxMessage: 'Name cannot be longer than 100 characters')]
     private ?string $name = null;
