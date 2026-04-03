@@ -19,13 +19,13 @@ class AuthController extends AbstractController
     public function __construct(
         private readonly AuthService $authService,
     ) {}
-    
+
     #[Route('/register', name: 'register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
         $user = $this->authService->register($data);
-        
+
         return $this->json(
             $user,
             Response::HTTP_CREATED,
@@ -38,10 +38,10 @@ class AuthController extends AbstractController
     public function me(#[CurrentUser()] ?User $user): JsonResponse
     {
          // temporary debug
-    if (!$user) {
-        return $this->json(['error' => 'user is null']);
-    }
-    
+        if (!$user) {
+            return $this->json(['error' => 'user is null']);
+        }
+
         return $this->json(
             $user,
             Response::HTTP_OK,

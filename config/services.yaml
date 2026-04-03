@@ -22,3 +22,7 @@ services:
     # Interface bindings
     App\Repository\Contracts\UserRepositoryInterface:
         class: App\Repository\UserRepository
+    App\Repository\Contracts\WorkOrderRepositoryInterface:
+        class: App\Repository\WorkOrderRepository
+    App\Repository\Contracts\MilestoneRepositoryInterface:
+        class: App\Repository\MilestoneRepository
