@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Dto\RegisterDto;
 use App\Entity\User;
 use App\Service\AuthService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -21,10 +22,9 @@ class AuthController extends AbstractController
     ) {}
 
     #[Route('/register', name: 'register', methods: ['POST'])]
-    public function register(Request $request): JsonResponse
+    public function register(#[MapRequestPayload] RegisterDto $dto): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        $user = $this->authService->register($data);
+        $user = $this->authService->register($dto);
 
         return $this->json(
             $user,
@@ -37,9 +37,8 @@ class AuthController extends AbstractController
     #[Route('/me', name: 'me', methods: ['GET'])]
     public function me(#[CurrentUser()] ?User $user): JsonResponse
     {
-         // temporary debug
         if (!$user) {
-            return $this->json(['error' => 'user is null']);
+            return $this->json(['error' => 'user is null'], Response::HTTP_UNAUTHORIZED);
         }
 
         return $this->json(
