@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Enum\MilestoneStatus;
@@ -24,29 +26,23 @@ class Milestone
 
     #[Groups(['milestone:read'])]
     #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: 'Title is required')]
-    #[Assert\Length(min: 2, max: 255)]
     private ?string $title = null;
 
     #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::TEXT)]
-    #[Assert\NotBlank(message: 'Description is required')]
     private ?string $description = null;
 
     #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    #[Assert\NotBlank(message: 'Amount is required')]
     #[Assert\Positive(message: 'Amount must be positive')]
     private ?string $amount = null;
 
     #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
-    #[Assert\NotNull(message: 'Due date is required')]
     private ?\DateTimeImmutable $dueDate = null;
 
-    #[ORM\Column(type: Types::SMALLINT, options: ['unsigned' => true, 'default' => 0])]
-    #[Assert\Choice(choices: [MilestoneStatus::PENDING, MilestoneStatus::SUBMITTED, MilestoneStatus::APPROVED, MilestoneStatus::REJECTED], message: 'Invalid milestone status')]
-    private ?MilestoneStatus $status = null;
+    #[ORM\Column(type: Types::SMALLINT, options: ['unsigned' => true, 'default' => 0], enumType: MilestoneStatus::class)]
+    private ?MilestoneStatus $status = MilestoneStatus::PENDING;
 
     #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -70,7 +66,7 @@ class Milestone
 
     // ─── Relationships ────────────────────────────────────────────────────────
     #[Groups(['milestone:read'])]
-    #[ORM\ManyToOne(targetEntity: WorkOrder::class,  inversedBy: 'milestones')]
+    #[ORM\ManyToOne(targetEntity: WorkOrder::class, inversedBy: 'milestones')]
     #[ORM\JoinColumn(name: 'work_order_id', referencedColumnName: 'id', nullable: false)]
     private ?WorkOrder $workOrder = null;
 
@@ -83,7 +79,7 @@ class Milestone
     {
         $this->createdAt = new \DateTimeImmutable();
     }
-    
+
     #[ORM\PreUpdate]
     public function onPreUpdate(): void
     {
@@ -97,7 +93,7 @@ class Milestone
     {
         return $this->status->label();
     }
-    
+
     // ─── Getters & Setters ────────────────────────────────────────────────────
     public function getId(): ?int
     {

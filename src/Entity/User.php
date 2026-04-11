@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Enum\UserRole;
@@ -15,7 +16,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'users')]
-#[UniqueEntity(fields: ['email'], message: 'Email already in use')] 
+#[UniqueEntity(fields: ['email'], message: 'This email is already in use')] 
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -26,28 +27,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 100)]
     #[Groups(['user:read', 'user:embed'])]
-    #[Assert\NotBlank(message: 'Name is required')]
-    #[Assert\Length(min: 3, max: 100, minMessage: 'Name must be at least 3 character long', maxMessage: 'Name cannot be longer than 100 characters')]
     private ?string $name = null;
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Assert\NotBlank(message: 'Email is required')]
-    #[Assert\Email(message: 'Invalid email format')]
+    #[Assert\Email]
     #[Groups(['user:read'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: 'Password is required')]
     private ?string $password = null;
 
     #[ORM\Column(length: 50, type: 'string', enumType: UserRole::class)]
-    #[Assert\NotNull(message: 'Role is required')]
     #[Groups(['user:read'])]
     private UserRole $role;
 
     #[ORM\Column]
     #[Groups(['user:read'])]
-    private ?\DateTimeImmutable $createdAt;
+    private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['user:read'])]
@@ -65,7 +61,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->updatedAt = new \DateTimeImmutable();
     }
 
-    // ---------------------------------------------------------------------------------------------    
     public function getUserIdentifier(): string
     {
         return $this->email;
@@ -77,8 +72,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     public function eraseCredentials(): void {}
-    // ---------------------------------------------------------------------------------------------
-
 
     public function getId(): ?int
     {

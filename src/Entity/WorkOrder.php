@@ -24,18 +24,14 @@ class WorkOrder
 
     #[Groups(['work_order:read', 'work_order:embed'])]
     #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: 'Title is required')]
-    #[Assert\Length(min: 2, max: 255, maxMessage: 'Title cannot be longer than {{ limit }} characters')]
     private ?string $title = null;
 
     #[Groups(['work_order:read'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    #[Assert\Length(max: 1000, maxMessage: 'Description cannot be longer than {{ limit }} characters')]
     private ?string $description = null;
 
     #[Groups(['work_order:read'])]
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: false)]
-    #[Assert\NotBlank(message: 'Budget is required')]
     #[Assert\Positive(message: 'Budget must be positive')]
     private ?string $budget = null;
 
@@ -46,8 +42,7 @@ class WorkOrder
 
     #[Groups(['work_order:read'])]
     #[ORM\Column(type: Types::DATE_MUTABLE)]
-    #[Assert\NotNull(message: 'Deadline is required')]
-    private ?\DateTime $deadline = null;
+    private ?\DateTimeImmutable $deadline = null;
 
     #[ORM\Column]
     #[Groups(['work_order:read'])]
@@ -81,6 +76,12 @@ class WorkOrder
     public function onPrePersist(): void
     {
         $this->createdAt = new \DateTimeImmutable();
+    }
+
+    #[ORM\PreUpdate]
+    public function onPreUpdate(): void
+    {
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     // ─── Getters & Setters ────────────────────────────────────────────────────
@@ -156,12 +157,12 @@ class WorkOrder
         return $this->status->label();
     }
 
-    public function getDeadline(): ?\DateTime
+    public function getDeadline(): ?\DateTimeImmutable
     {
         return $this->deadline;
     }
 
-    public function setDeadline(\DateTime $deadline): static
+    public function setDeadline(\DateTimeImmutable $deadline): static
     {
         $this->deadline = $deadline;
 
@@ -179,28 +180,28 @@ class WorkOrder
 
         return $this;
     }
-    
+
     public function getClient(): ?User
     {
         return $this->client;
     }
-    
+
     public function setClient(User $client): static
     {
         $this->client = $client;
-        
+
         return $this;
     }
-    
+
     public function getFreelancer(): ?User
     {
         return $this->freelancer;
     }
-    
+
     public function setFreelancer(User $freelancer): static
     {
         $this->freelancer = $freelancer;
-        
+
         return $this;
     }
 
@@ -234,7 +235,7 @@ class WorkOrder
     public function removeMilestone(Milestone $milestone): static
     {
         $this->milestones->removeElement($milestone);
-        
+
         return $this;
     }
 }
