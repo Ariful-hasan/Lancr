@@ -1,0 +1,33 @@
+framework:
+    messenger:
+        # The bus that will be used to dispatch messages
+        default_bus: messenger.bus.default
+
+        buses:
+            messenger.bus.default:
+                middleware:
+                    - doctrine_transaction
+
+        failure_transport: failed
+
+        transports:
+            # The "Outbox" using Doctrine
+            async:
+                dsn: 'doctrine://default'
+                options:
+                    auto_setup: false # ← Changed to false for Best Practice
+                    use_notify: true
+                    check_delayed_interval: 60000
+                retry_strategy:
+                    max_retries: 3
+                    multiplier: 2
+            
+            failed:
+                dsn: 'doctrine://default'
+                options:
+                    queue_name: 'failed'
+                    auto_setup: false # ← Changed to false for Best Practice
+
+        routing:
+            # Route our status change message to the async transport
+            'App\Message\EntityStatusChangedMessage': async
