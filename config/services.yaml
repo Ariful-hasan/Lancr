@@ -26,3 +26,6 @@ services:
         class: App\Repository\WorkOrderRepository
     App\Repository\Contracts\MilestoneRepositoryInterface:
         class: App\Repository\MilestoneRepository
+    App\Repository\Contracts\PaymentRepositoryInterface:
+        class: App\Repository\PaymentRepository
+    
