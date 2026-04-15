@@ -6,7 +6,6 @@ use App\Enum\PaymentStatus;
 use App\Repository\PaymentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
@@ -19,13 +18,11 @@ class Payment
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['payment:read'])]
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Assert\NotBlank(message: 'Amount is required')]
     #[Assert\Positive(message: 'Amount must be positive')]
-    #[Groups(['payment:read'])]
     private ?string $amount = null;
 
     #[ORM\Column(type: Types::SMALLINT, options: ['unsigned' => true, 'default' => 0])]
@@ -33,22 +30,18 @@ class Payment
     private ?PaymentStatus $status = PaymentStatus::PENDING;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['payment:read'])]
     private ?\DateTimeImmutable $paidAt = null;
 
     #[ORM\Column]
-    #[Groups(['payment:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
     // ─── Relationships ────────────────────────────────────────────────────────
     #[ORM\ManyToOne(targetEntity: WorkOrder::class)]
     #[ORM\JoinColumn(name: 'work_order_id', referencedColumnName: 'id', nullable: false)]
-    #[Groups(['payment:read'])]
     private ?WorkOrder $workOrder = null;
 
     #[ORM\OneToOne(targetEntity: Milestone::class, inversedBy: 'payment', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(name: 'milestone_id', referencedColumnName: 'id', nullable: false)]
-    #[Groups(['payment:read'])]
     private Milestone $milestone;
 
     // ─── Lifecycle Callbacks ──────────────────────────────────────────────────
@@ -59,7 +52,6 @@ class Payment
     }
 
     // ─── Virtual Properties ───────────────────────────────────────────────────
-    #[Groups(['payment:read'])]
     public function getStatusLabel(): string
     {
         return $this->status->label();

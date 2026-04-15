@@ -8,7 +8,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: WorkOrderRepository::class)]
@@ -19,18 +18,14 @@ class WorkOrder
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['work_order:read', 'work_order:embed'])]
     private ?int $id = null;
 
-    #[Groups(['work_order:read', 'work_order:embed'])]
     #[ORM\Column(length: 255)]
     private ?string $title = null;
 
-    #[Groups(['work_order:read'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
-    #[Groups(['work_order:read'])]
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: false)]
     #[Assert\Positive(message: 'Budget must be positive')]
     private ?string $budget = null;
@@ -40,27 +35,22 @@ class WorkOrder
     #[ORM\Column(type: 'smallint', options: ['unsigned' => true, 'default' => 0])]
     private WorkOrderStatus $status = WorkOrderStatus::DRAFT;
 
-    #[Groups(['work_order:read'])]
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeImmutable $deadline = null;
 
     #[ORM\Column]
-    #[Groups(['work_order:read'])]
     private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(nullable: true)]
-    #[Groups(['work_order:read'])]
     private ?\DateTimeImmutable $updatedAt = null;
 
     // ─── Relationships ────────────────────────────────────────────────────────
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(name: 'client_id', referencedColumnName: 'id', nullable: false)]
-    #[Groups(['work_order:read'])]
     private ?User $client = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(name: 'freelancer_id', referencedColumnName: 'id', nullable: false)]
-    #[Groups(['work_order:read'])]
     private ?User $freelancer = null;
 
     #[ORM\OneToMany(targetEntity: Milestone::class, mappedBy: 'workOrder', cascade: ['persist', 'remove'])]
@@ -126,7 +116,6 @@ class WorkOrder
         return $this;
     }
 
-    #[Groups(['work_order:read'])]
     public function getAmountPaid(): ?float
     {
         return $this->amountPaid;
@@ -151,7 +140,6 @@ class WorkOrder
         return $this;
     }
 
-    #[Groups(['work_order:read'])]
     public function getStatusLabel(): string
     {
         return $this->status->label();

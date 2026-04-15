@@ -8,7 +8,6 @@ use App\Enum\MilestoneStatus;
 use App\Repository\MilestoneRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MilestoneRepository::class)]
@@ -21,51 +20,40 @@ class Milestone
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['milestone:read'])]
     private ?int $id = null;
 
-    #[Groups(['milestone:read'])]
     #[ORM\Column(length: 255)]
     private ?string $title = null;
 
-    #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::TEXT)]
     private ?string $description = null;
 
-    #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     #[Assert\Positive(message: 'Amount must be positive')]
     private ?string $amount = null;
 
-    #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $dueDate = null;
 
     #[ORM\Column(type: Types::SMALLINT, options: ['unsigned' => true, 'default' => 0], enumType: MilestoneStatus::class)]
     private ?MilestoneStatus $status = MilestoneStatus::PENDING;
 
-    #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $reviewNote = null;
 
-    #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $submittedAt = null;
 
-    #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $reviewedAt = null;
 
-    #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[Groups(['milestone:read'])]
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
     // ─── Relationships ────────────────────────────────────────────────────────
-    #[Groups(['milestone:read'])]
     #[ORM\ManyToOne(targetEntity: WorkOrder::class, inversedBy: 'milestones')]
     #[ORM\JoinColumn(name: 'work_order_id', referencedColumnName: 'id', nullable: false)]
     private ?WorkOrder $workOrder = null;
@@ -88,7 +76,6 @@ class Milestone
 
     // ─── Virtual Properties ───────────────────────────────────────────────────
 
-    #[Groups(['milestone:read'])]
     public function getStatusLabel(): string
     {
         return $this->status->label();
