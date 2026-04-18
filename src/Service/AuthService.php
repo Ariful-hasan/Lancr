@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Dto\RegisterDto;
+use App\Dto\Request\RegisterDto;
 use App\Entity\User;
 use App\Enum\UserRole;
 use App\Repository\Contracts\UserRepositoryInterface;

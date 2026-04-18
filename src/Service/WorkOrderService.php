@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Dto\CreateMilestoneDto;
-use App\Dto\CreateWorkOrderDto;
+use App\Dto\Request\CreateMilestoneDto;
+use App\Dto\Request\CreateWorkOrderDto;
 use App\Entity\Milestone;
 use App\Entity\User;
 use App\Entity\WorkOrder;
@@ -83,7 +83,7 @@ class WorkOrderService
             $this->bus->dispatch(new EntityStatusChangedMessage(
                 $workOrder->getId(),
                 WorkOrder::class,
-                WorkOrderStatus::DRAFT->label(),
+                'NEW',
                 $workOrder->getStatus()->label()
             ));
 
@@ -175,13 +175,7 @@ class WorkOrderService
 
     public function checkBudget(WorkOrder $workOrder, string $newMileStoneAmount): void
     {
-        $totalMilestoneAmount = array_reduce(
-            $workOrder->getMilestones()->toArray(),
-            function (string $carry, Milestone $milestone): string {
-                return bcadd($carry, $milestone->getAmount(), 2);
-            },
-            '0.00'
-        );
+        $totalMilestoneAmount = $this->workOrderRepository->getTotalAllocatedAmount($workOrder);
 
         $newTotal = bcadd($totalMilestoneAmount, $newMileStoneAmount, 2);
 

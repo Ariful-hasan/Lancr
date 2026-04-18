@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use App\Dto\RejectMilestoneDto;
+use App\Dto\Request\RejectMilestoneDto;
 use App\Entity\Milestone;
 use App\Entity\Payment;
 use App\Entity\WorkOrder;
@@ -15,12 +15,11 @@ use App\Exception\AccessDeniedException;
 use App\Exception\InvalidStatusTransitionException;
 use App\Message\EntityStatusChangedMessage;
 use App\Repository\Contracts\MilestoneRepositoryInterface;
+use App\Repository\Contracts\PaymentRepositoryInterface;
 use App\Repository\Contracts\WorkOrderRepositoryInterface;
-use App\Repository\PaymentRepository;
 use App\Trait\CanValidateEntity;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Throwable;
@@ -32,7 +31,7 @@ class MilestoneService
     public function __construct(
         private readonly WorkOrderRepositoryInterface $workOrderRepository,
         private readonly MilestoneRepositoryInterface $milestoneRepository,
-        private readonly PaymentRepository $paymentRepository,
+        private readonly PaymentRepositoryInterface $paymentRepository,
         private readonly Security $security,
         private readonly ValidatorInterface $validator,
         private readonly EntityManagerInterface $entityManager,
@@ -44,9 +43,8 @@ class MilestoneService
         $user = $this->security->getUser();
 
         if ($milestone->getWorkOrder()->getFreelancer() !== $user) {
-            throw new AccessDeniedHttpException('Only the freelancer can submit a milestone.');
+            throw new AccessDeniedException('Only the freelancer can submit a milestone.');
         }
-
         $oldStatus = $milestone->getStatus()->label();
         $milestone->setStatus(MilestoneStatus::SUBMITTED);
         $milestone->setSubmittedAt(new \DateTimeImmutable());
@@ -116,13 +114,7 @@ class MilestoneService
             $this->paymentRepository->save($payment);
 
             // C. Auto-complete Work Order if all milestones are paid
-            $totalMilestoneAmount = array_reduce(
-                $workOrder->getMilestones()->toArray(),
-                function (string $carry, Milestone $milestone): string {
-                    return bcadd($carry, $milestone->getAmount(), 2);
-                },
-                '0.00'
-            );
+            $totalMilestoneAmount = $this->workOrderRepository->getTotalAllocatedAmount($workOrder);
 
             if (
                 $this->milestoneRepository->allApproved($workOrder) &&
