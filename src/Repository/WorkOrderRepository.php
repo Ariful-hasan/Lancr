@@ -55,6 +55,23 @@ class WorkOrderRepository extends ServiceEntityRepository implements WorkOrderRe
             ->getResult();
     }
 
+    public function getTotalAllocatedAmount(WorkOrder $workOrder): string
+    {
+        return (string) ($this->getEntityManager()
+            ->createQuery('SELECT SUM(m.amount) FROM App\Entity\Milestone m WHERE m.workOrder = :workOrder')
+            ->setParameter('workOrder', $workOrder)
+            ->getSingleScalarResult() ?? '0.00');
+    }
+
+    public function getTotalPaidAmount(WorkOrder $workOrder): string
+    {
+        return (string) ($this->getEntityManager()
+            ->createQuery('SELECT SUM(m.amount) FROM App\Entity\Milestone m WHERE m.workOrder = :workOrder AND m.status = :status')
+            ->setParameter('workOrder', $workOrder)
+            ->setParameter('status', \App\Enum\MilestoneStatus::APPROVED)
+            ->getSingleScalarResult() ?? '0.00');
+    }
+
     //    /**
     //     * @return WorkOrder[] Returns an array of WorkOrder objects
     //     */

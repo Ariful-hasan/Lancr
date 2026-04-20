@@ -8,6 +8,8 @@ use App\Entity\WorkOrder;
 interface WorkOrderRepositoryInterface
 {
     public function save(WorkOrder $workOrder): void;
+    public function getTotalAllocatedAmount(WorkOrder $workOrder): string;
+    public function getTotalPaidAmount(WorkOrder $workOrder): string;
     public function delete(WorkOrder $workOrder): void;
     public function findById(int $id): ?WorkOrder;
     public function findByClient(User $client): array;
