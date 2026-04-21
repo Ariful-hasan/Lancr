@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Dto\RegisterDto;
+use App\Dto\Request\RegisterDto;
+use App\Dto\Response\UserResponse;
 use App\Entity\User;
 use App\Service\AuthService;
+use App\Trait\ApiResponder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,6 +19,8 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 #[Route('/api/auth', name: 'api_auth_')]
 class AuthController extends AbstractController
 {
+    use ApiResponder;
+
     public function __construct(
         private readonly AuthService $authService,
     ) {}
@@ -26,26 +30,16 @@ class AuthController extends AbstractController
     {
         $user = $this->authService->register($dto);
 
-        return $this->json(
-            $user,
-            Response::HTTP_CREATED,
-            [],
-            ['groups' => ['user:read']]
-        );
+        return $this->respond(UserResponse::fromEntity($user), 'User registered', Response::HTTP_CREATED);
     }
 
     #[Route('/me', name: 'me', methods: ['GET'])]
     public function me(#[CurrentUser()] ?User $user): JsonResponse
     {
         if (!$user) {
-            return $this->json(['error' => 'user is null'], Response::HTTP_UNAUTHORIZED);
+            return $this->respond(null, 'Unauthorized', Response::HTTP_UNAUTHORIZED);
         }
 
-        return $this->json(
-            $user,
-            Response::HTTP_OK,
-            [],
-            ['groups' => ['user:read']]
-        );
+        return $this->respond(UserResponse::fromEntity($user));
     }
 }
