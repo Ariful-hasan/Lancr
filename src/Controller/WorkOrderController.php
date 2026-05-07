@@ -36,16 +36,17 @@ class WorkOrderController extends AbstractController
         $workOrder = $this->workOrderService->createWorkOrder($dto);
 
         return $this->respond(
-            WorkOrderResponse::fromEntity($workOrder, $this->workOrderRepository),
+            WorkOrderResponse::fromEntity($workOrder),
             'Work order created',
             Response::HTTP_CREATED
         );
     }
 
     #[Route('/{id}', name: 'show', methods: ['GET'])]
+    #[IsGranted(WorkOrderVoter::VIEW, subject: 'workOrder')]
     public function show(WorkOrder $workOrder): JsonResponse
     {
-        return $this->respond(WorkOrderResponse::fromEntity($workOrder, $this->workOrderRepository));
+        return $this->respond(WorkOrderResponse::fromEntity($workOrder));
     }
 
     #[Route('/{id}/accept', name: 'accept', methods: ['POST'])]
@@ -55,23 +56,25 @@ class WorkOrderController extends AbstractController
         $this->workOrderService->acceptWorkOrder($workOrder);
 
         return $this->respond(
-            WorkOrderResponse::fromEntity($workOrder, $this->workOrderRepository),
+            WorkOrderResponse::fromEntity($workOrder),
             'Work order accepted'
         );
     }
 
     #[Route('/{id}/reject', name: 'reject', methods: ['POST'])]
+    #[IsGranted(WorkOrderVoter::REJECT, subject: 'workOrder')]
     public function reject(WorkOrder $workOrder): JsonResponse
     {
         $this->workOrderService->rejectWorkOrder($workOrder);
 
         return $this->respond(
-            WorkOrderResponse::fromEntity($workOrder, $this->workOrderRepository),
+            WorkOrderResponse::fromEntity($workOrder),
             'Work order rejected'
         );
     }
 
     #[Route('/{id}/milestones', name: 'add_milestone', methods: ['POST'])]
+    #[IsGranted(WorkOrderVoter::ADD_MILESTONE, subject: 'workOrder')]
     public function addMilestone(WorkOrder $workOrder, #[MapRequestPayload] CreateMilestoneDto $dto): JsonResponse
     {
         $milestone = $this->workOrderService->addMilestone($workOrder, $dto);
@@ -84,12 +87,13 @@ class WorkOrderController extends AbstractController
     }
 
     #[Route('/{id}/dispute', name: 'dispute', methods: ['POST'])]
+    #[IsGranted(WorkOrderVoter::DISPUTE, subject: 'workOrder')]
     public function dispute(WorkOrder $workOrder): JsonResponse
     {
         $this->workOrderService->raiseDispute($workOrder);
 
         return $this->respond(
-            WorkOrderResponse::fromEntity($workOrder, $this->workOrderRepository),
+            WorkOrderResponse::fromEntity($workOrder),
             'Dispute raised'
         );
     }

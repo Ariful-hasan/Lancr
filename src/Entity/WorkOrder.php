@@ -30,19 +30,21 @@ class WorkOrder
     #[Assert\Positive(message: 'Budget must be positive')]
     private ?string $budget = null;
 
-    private float $amountPaid = 0.0;
+    private ?string $amountPaid = null;
 
-    #[ORM\Column(type: 'smallint', options: ['unsigned' => true, 'default' => 0])]
+    #[ORM\Column(type: 'smallint', options: ['unsigned' => true, 'default' => 0], enumType: WorkOrderStatus::class)]
     private WorkOrderStatus $status = WorkOrderStatus::DRAFT;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $deadline = null;
 
-    #[ORM\Column]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $createdAt = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
+
+    private ?string $totalAllocated = null;
 
     // ─── Relationships ────────────────────────────────────────────────────────
     #[ORM\ManyToOne(targetEntity: User::class)]
@@ -116,16 +118,49 @@ class WorkOrder
         return $this;
     }
 
-    public function getAmountPaid(): ?float
+    public function getAmountPaid(): string
     {
+        if ($this->amountPaid === null) {
+            $total = '0.00';
+            foreach ($this->milestones as $milestone) {
+                if ($milestone->getStatus() === \App\Enum\MilestoneStatus::APPROVED) {
+                    $total = bcadd($total, $milestone->getAmount(), 2);
+                }
+            }
+            $this->amountPaid = $total;
+        }
+
         return $this->amountPaid;
     }
 
-    public function setAmountPaid(float $amountPaid): static
+    public function getTotalAllocated(): string
     {
-        $this->amountPaid = $amountPaid;
+        if ($this->totalAllocated === null) {
+            $total = '0.00';
+            foreach ($this->milestones as $milestone) {
+                if ($milestone->getStatus() !== \App\Enum\MilestoneStatus::REJECTED) {
+                    $total = bcadd($total, $milestone->getAmount(), 2);
+                }
+            }
+            $this->totalAllocated = $total;
+        }
 
-        return $this;
+        return $this->totalAllocated;
+    }
+
+    public function isFullyApproved(): bool
+    {
+        if ($this->milestones->isEmpty()) {
+            return false;
+        }
+
+        foreach ($this->milestones as $milestone) {
+            if ($milestone->getStatus() !== \App\Enum\MilestoneStatus::APPROVED) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function getStatus(): ?WorkOrderStatus

@@ -30,14 +30,14 @@ final readonly class WorkOrderResponse
         public array $milestones = [],
     ) {}
 
-    public static function fromEntity(WorkOrder $workOrder, WorkOrderRepositoryInterface $repository): self
+    public static function fromEntity(WorkOrder $workOrder): self
     {
         return new self(
             id: $workOrder->getId(),
             title: $workOrder->getTitle(),
             description: $workOrder->getDescription(),
             budget: $workOrder->getBudget(),
-            amountPaid: $repository->getTotalPaidAmount($workOrder),
+            amountPaid: $workOrder->getAmountPaid(),
             status: $workOrder->getStatus()->label(),
             deadline: $workOrder->getDeadline()->format(DateTimeInterface::ATOM),
             createdAt: $workOrder->getCreatedAt()->format(DateTimeInterface::ATOM),

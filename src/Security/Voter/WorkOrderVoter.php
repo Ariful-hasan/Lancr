@@ -11,13 +11,15 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 final class WorkOrderVoter extends Voter
 {
-    const ACCEPT = 'acceptWorkOrder';
+    const ACCEPT        = 'acceptWorkOrder';
+    const REJECT        = 'rejectWorkOrder';
+    const DISPUTE       = 'disputeWorkOrder';
+    const VIEW          = 'viewWorkOrder';
+    const ADD_MILESTONE = 'addMilestone';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        // replace with your own logic
-        // https://symfony.com/doc/current/security/voters.html
-        return in_array($attribute, [self::ACCEPT])
+        return in_array($attribute, [self::ACCEPT, self::REJECT, self::DISPUTE, self::VIEW, self::ADD_MILESTONE])
             && $subject instanceof WorkOrder;
     }
 
@@ -32,7 +34,11 @@ final class WorkOrderVoter extends Voter
         }
 
         return match ($attribute) {
-            self::ACCEPT => $this->canAccept($subject, $user, $vote),
+            self::ACCEPT        => $this->canAccept($subject, $user, $vote),
+            self::REJECT        => $this->canReject($subject, $user, $vote),
+            self::DISPUTE       => $this->canDispute($subject, $user, $vote),
+            self::VIEW          => $this->canView($subject, $user),
+            self::ADD_MILESTONE => $this->canAddMilestone($subject, $user, $vote),
             default => false,
         };
     }
@@ -45,11 +51,40 @@ final class WorkOrderVoter extends Voter
             return false;
         }
 
-        if ($workOrder->getStatus() !== WorkOrderStatus::PENDING) {
-            $vote?->addReason(sprintf(
-                'Work order must be PENDING, current status is %s.',
-                $workOrder->getStatus()->label()
-            ));
+        return true;
+    }
+
+    private function canReject(WorkOrder $workOrder, UserInterface $user, ?Vote $vote = null): bool
+    {
+        if ($workOrder->getFreelancer() !== $user) {
+            $vote?->addReason('Only the assigned freelancer can reject this work order.');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private function canDispute(WorkOrder $workOrder, UserInterface $user, ?Vote $vote = null): bool
+    {
+        if ($workOrder->getClient() !== $user && $workOrder->getFreelancer() !== $user) {
+            $vote?->addReason('Only participants can dispute this work order.');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private function canView(WorkOrder $workOrder, UserInterface $user): bool
+    {
+        return $workOrder->getClient() === $user || $workOrder->getFreelancer() === $user;
+    }
+
+    private function canAddMilestone(WorkOrder $workOrder, UserInterface $user, ?Vote $vote = null): bool
+    {
+        if ($workOrder->getClient() !== $user) {
+            $vote?->addReason('Only the client can add milestones.');
 
             return false;
         }

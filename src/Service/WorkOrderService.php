@@ -79,44 +79,53 @@ class WorkOrderService
         $this->entityManager->beginTransaction();
         try {
             $this->workOrderRepository->save($workOrder);
-
-            $this->bus->dispatch(new EntityStatusChangedMessage(
-                $workOrder->getId(),
-                WorkOrder::class,
-                'NEW',
-                $workOrder->getStatus()->label()
-            ));
-
             $this->entityManager->commit();
         } catch (Throwable $e) {
             $this->entityManager->rollback();
             throw $e;
         }
+
+        $this->bus->dispatch(new EntityStatusChangedMessage(
+            $workOrder->getId(),
+            WorkOrder::class,
+            'NEW',
+            $workOrder->getStatus()->label()
+        ));
 
         return $workOrder;
     }
 
     public function acceptWorkOrder(WorkOrder $workOrder): void
     {
+        $user = $this->security->getUser();
+
+        if ($workOrder->getFreelancer() !== $user) {
+            throw new AccessDeniedException('You are not the assigned freelancer.');
+        }
+
+        if ($workOrder->getStatus() !== WorkOrderStatus::PENDING) {
+            throw new InvalidStatusTransitionException(WorkOrderStatus::PENDING, $workOrder->getStatus());
+        }
+
         $oldStatus = $workOrder->getStatus()->label();
-        $workOrder->setStatus(WorkOrderStatus::ACTIVE);
+        $newStatus = WorkOrderStatus::ACTIVE;
+        $workOrder->setStatus($newStatus);
 
         $this->entityManager->beginTransaction();
         try {
             $this->workOrderRepository->save($workOrder);
-
-            $this->bus->dispatch(new EntityStatusChangedMessage(
-                $workOrder->getId(),
-                WorkOrder::class,
-                $oldStatus,
-                WorkOrderStatus::ACTIVE->label()
-            ));
-
             $this->entityManager->commit();
         } catch (Throwable $e) {
             $this->entityManager->rollback();
             throw $e;
         }
+
+        $this->bus->dispatch(new EntityStatusChangedMessage(
+            $workOrder->getId(),
+            WorkOrder::class,
+            $oldStatus,
+            $newStatus->label()
+        ));
     }
 
     public function addMilestone(WorkOrder $workOrder, CreateMilestoneDto $dto): Milestone
@@ -138,36 +147,36 @@ class WorkOrderService
         $milestone->setDescription($dto->description);
         $milestone->setAmount($dto->amount);
         $milestone->setDueDate(new \DateTimeImmutable($dto->due_date));
-        $milestone->setWorkOrder($workOrder);
         $milestone->setStatus(MilestoneStatus::PENDING);
+        
+        // Use the entity's helper method to maintain bi-directional consistency in memory
+        $workOrder->addMilestone($milestone);
 
         $this->validate($milestone);
 
         $this->entityManager->beginTransaction();
         try {
             $this->milestoneRepository->save($milestone);
-
-            $this->bus->dispatch(new EntityStatusChangedMessage(
-                $milestone->getId(),
-                Milestone::class,
-                'NEW',
-                MilestoneStatus::PENDING->label()
-            ));
-
             $this->entityManager->commit();
         } catch (Throwable $e) {
             $this->entityManager->rollback();
             throw $e;
         }
 
+        $this->bus->dispatch(new EntityStatusChangedMessage(
+            $milestone->getId(),
+            Milestone::class,
+            'NEW',
+            MilestoneStatus::PENDING->label()
+        ));
+
         return $milestone;
     }
 
     public function checkBudget(WorkOrder $workOrder, string $newMileStoneAmount): void
     {
-        $totalMilestoneAmount = $this->workOrderRepository->getTotalAllocatedAmount($workOrder);
-
-        $newTotal = bcadd($totalMilestoneAmount, $newMileStoneAmount, 2);
+        $currentAllocated = $workOrder->getTotalAllocated();
+        $newTotal = bcadd($currentAllocated, $newMileStoneAmount, 2);
 
         if (bccomp($newTotal, $workOrder->getBudget(), 2) > 0) {
             throw new BudgetExceededException($workOrder->getBudget(), $newTotal);
@@ -187,24 +196,24 @@ class WorkOrderService
         }
 
         $oldStatus = $workOrder->getStatus()->label();
-        $workOrder->setStatus(WorkOrderStatus::REJECTED);
+        $newStatus = WorkOrderStatus::REJECTED;
+        $workOrder->setStatus($newStatus);
 
         $this->entityManager->beginTransaction();
         try {
             $this->workOrderRepository->save($workOrder);
-
-            $this->bus->dispatch(new EntityStatusChangedMessage(
-                $workOrder->getId(),
-                WorkOrder::class,
-                $oldStatus,
-                WorkOrderStatus::REJECTED->label()
-            ));
-
             $this->entityManager->commit();
         } catch (Throwable $e) {
             $this->entityManager->rollback();
             throw $e;
         }
+
+        $this->bus->dispatch(new EntityStatusChangedMessage(
+            $workOrder->getId(),
+            WorkOrder::class,
+            $oldStatus,
+            $newStatus->label()
+        ));
     }
 
     public function raiseDispute(WorkOrder $workOrder): void
@@ -220,23 +229,23 @@ class WorkOrderService
         }
 
         $oldStatus = $workOrder->getStatus()->label();
-        $workOrder->setStatus(WorkOrderStatus::DISPUTED);
+        $newStatus = WorkOrderStatus::DISPUTED;
+        $workOrder->setStatus($newStatus);
 
         $this->entityManager->beginTransaction();
         try {
             $this->workOrderRepository->save($workOrder);
-
-            $this->bus->dispatch(new EntityStatusChangedMessage(
-                $workOrder->getId(),
-                WorkOrder::class,
-                $oldStatus,
-                WorkOrderStatus::DISPUTED->label()
-            ));
-
             $this->entityManager->commit();
         } catch (Throwable $e) {
             $this->entityManager->rollback();
             throw $e;
         }
+
+        $this->bus->dispatch(new EntityStatusChangedMessage(
+            $workOrder->getId(),
+            WorkOrder::class,
+            $oldStatus,
+            $newStatus->label()
+        ));
     }
 }
