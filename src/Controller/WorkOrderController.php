@@ -10,6 +10,7 @@ use App\Dto\Response\MilestoneResponse;
 use App\Dto\Response\WorkOrderResponse;
 use App\Entity\WorkOrder;
 use App\Repository\Contracts\WorkOrderRepositoryInterface;
+use App\Security\Voter\WorkOrderVoter;
 use App\Service\WorkOrderService;
 use App\Trait\ApiResponder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,6 +18,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/work-orders', name: 'api_work_order_')]
 class WorkOrderController extends AbstractController
@@ -47,10 +49,11 @@ class WorkOrderController extends AbstractController
     }
 
     #[Route('/{id}/accept', name: 'accept', methods: ['POST'])]
+    #[IsGranted(WorkOrderVoter::ACCEPT, subject: 'workOrder')]
     public function accept(WorkOrder $workOrder): JsonResponse
     {
         $this->workOrderService->acceptWorkOrder($workOrder);
-        
+
         return $this->respond(
             WorkOrderResponse::fromEntity($workOrder, $this->workOrderRepository),
             'Work order accepted'
@@ -61,7 +64,7 @@ class WorkOrderController extends AbstractController
     public function reject(WorkOrder $workOrder): JsonResponse
     {
         $this->workOrderService->rejectWorkOrder($workOrder);
-        
+
         return $this->respond(
             WorkOrderResponse::fromEntity($workOrder, $this->workOrderRepository),
             'Work order rejected'
@@ -69,12 +72,12 @@ class WorkOrderController extends AbstractController
     }
 
     #[Route('/{id}/milestones', name: 'add_milestone', methods: ['POST'])]
-    public function addMilestone(WorkOrder $workOrder, #[MapRequestPayload] CreateMilestoneDto $dto): JsonResponse 
+    public function addMilestone(WorkOrder $workOrder, #[MapRequestPayload] CreateMilestoneDto $dto): JsonResponse
     {
         $milestone = $this->workOrderService->addMilestone($workOrder, $dto);
 
         return $this->respond(
-            MilestoneResponse::fromEntity($milestone), 
+            MilestoneResponse::fromEntity($milestone),
             'Milestone added',
             Response::HTTP_CREATED
         );
@@ -84,7 +87,7 @@ class WorkOrderController extends AbstractController
     public function dispute(WorkOrder $workOrder): JsonResponse
     {
         $this->workOrderService->raiseDispute($workOrder);
-        
+
         return $this->respond(
             WorkOrderResponse::fromEntity($workOrder, $this->workOrderRepository),
             'Dispute raised'

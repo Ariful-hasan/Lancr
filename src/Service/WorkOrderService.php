@@ -98,16 +98,6 @@ class WorkOrderService
 
     public function acceptWorkOrder(WorkOrder $workOrder): void
     {
-        $freelancer = $this->security->getUser();
-
-        if ($workOrder->getFreelancer() !== $freelancer) {
-            throw new AccessDeniedException('You are not the assigned freelancer.');
-        }
-
-        if ($workOrder->getStatus() !== WorkOrderStatus::PENDING) {
-            throw new InvalidStatusTransitionException(WorkOrderStatus::PENDING, $workOrder->getStatus());
-        }
-
         $oldStatus = $workOrder->getStatus()->label();
         $workOrder->setStatus(WorkOrderStatus::ACTIVE);
 
