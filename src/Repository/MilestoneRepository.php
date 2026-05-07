@@ -59,26 +59,26 @@ class MilestoneRepository extends ServiceEntityRepository implements MilestoneRe
 
     public function allApproved(WorkOrder $workOrder): bool
     {
-        $total = $this->createQueryBuilder('m')
+        $nonApprovedCount = $this->createQueryBuilder('m')
+            ->select('COUNT(m.id)')
+            ->where('m.workOrder = :workOrder')
+            ->andWhere('m.status != :approvedStatus')
+            ->setParameter('workOrder', $workOrder)
+            ->setParameter('approvedStatus', MilestoneStatus::APPROVED)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        // We also need to ensure there's at least one milestone to avoid
+        // considering an empty WorkOrder as fully approved.
+        $totalCount = $this->createQueryBuilder('m')
             ->select('COUNT(m.id)')
             ->where('m.workOrder = :workOrder')
             ->setParameter('workOrder', $workOrder)
             ->getQuery()
             ->getSingleScalarResult();
 
-        $approved = $this->createQueryBuilder('m')
-            ->select('COUNT(m.id)')
-            ->where('m.workOrder = :workOrder')
-            ->andWhere('m.status = :status')
-            ->setParameter('workOrder', $workOrder)
-            ->setParameter('status', MilestoneStatus::APPROVED)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return $total > 0 && $total === $approved;
+        return $totalCount > 0 && $nonApprovedCount === 0;
     }
-
-    //    /**
     //     * @return Milestone[] Returns an array of Milestone objects
     //     */
     //    public function findByExampleField($value): array

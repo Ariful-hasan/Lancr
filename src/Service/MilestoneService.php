@@ -45,26 +45,27 @@ class MilestoneService
         if ($milestone->getWorkOrder()->getFreelancer() !== $user) {
             throw new AccessDeniedException('Only the freelancer can submit a milestone.');
         }
+
         $oldStatus = $milestone->getStatus()->label();
-        $milestone->setStatus(MilestoneStatus::SUBMITTED);
+        $newStatus = MilestoneStatus::SUBMITTED;
+        $milestone->setStatus($newStatus);
         $milestone->setSubmittedAt(new \DateTimeImmutable());
 
         $this->entityManager->beginTransaction();
         try {
             $this->milestoneRepository->save($milestone);
-
-            $this->bus->dispatch(new EntityStatusChangedMessage(
-                $milestone->getId(),
-                Milestone::class,
-                $oldStatus,
-                MilestoneStatus::SUBMITTED->label()
-            ));
-
             $this->entityManager->commit();
         } catch (Throwable $e) {
             $this->entityManager->rollback();
             throw $e;
         }
+
+        $this->bus->dispatch(new EntityStatusChangedMessage(
+            $milestone->getId(),
+            Milestone::class,
+            $oldStatus,
+            $newStatus->label()
+        ));
     }
 
     public function approve(Milestone $milestone): void
@@ -72,7 +73,6 @@ class MilestoneService
         $user = $this->security->getUser();
         $workOrder = $milestone->getWorkOrder();
 
-        // ─── 1. Guards (Outside Transaction) ──────────────────────────
         if ($workOrder->getClient() !== $user) {
             throw new AccessDeniedException('Only the client can approve milestones.');
         }
@@ -85,22 +85,23 @@ class MilestoneService
             throw new InvalidStatusTransitionException(WorkOrderStatus::ACTIVE, $workOrder->getStatus());
         }
 
-        // ─── 2. Transactional Block ───────────────────────────────────
+        $messages = [];
         $this->entityManager->beginTransaction();
 
         try {
             // A. Update Milestone Status
             $oldMilestoneStatus = $milestone->getStatus()->label();
-            $milestone->setStatus(MilestoneStatus::APPROVED);
+            $newMilestoneStatus = MilestoneStatus::APPROVED;
+            $milestone->setStatus($newMilestoneStatus);
             $milestone->setReviewedAt(new \DateTimeImmutable());
             $this->milestoneRepository->save($milestone);
 
-            $this->bus->dispatch(new EntityStatusChangedMessage(
+            $messages[] = new EntityStatusChangedMessage(
                 $milestone->getId(),
                 Milestone::class,
                 $oldMilestoneStatus,
-                MilestoneStatus::APPROVED->label()
-            ));
+                $newMilestoneStatus->label()
+            );
 
             // B. Create Payment Record
             $payment = new Payment();
@@ -113,29 +114,36 @@ class MilestoneService
             $this->validate($payment);
             $this->paymentRepository->save($payment);
 
-            // C. Auto-complete Work Order if all milestones are paid
-            $totalMilestoneAmount = $this->workOrderRepository->getTotalAllocatedAmount($workOrder);
+            // Set the payment on the milestone to maintain bi-directional consistency
+            $milestone->setPayment($payment);
+            $this->milestoneRepository->save($milestone); // Explicitly save milestone to reflect payment association
 
+            // C. Auto-complete Work Order if all milestones are paid
             if (
-                $this->milestoneRepository->allApproved($workOrder) &&
-                bccomp($totalMilestoneAmount, $workOrder->getBudget(), 2) >= 0
+                $workOrder->isFullyApproved() &&
+                bccomp($workOrder->getTotalAllocated(), $workOrder->getBudget(), 2) >= 0
             ) {
                 $oldWorkOrderStatus = $workOrder->getStatus()->label();
-                $workOrder->setStatus(WorkOrderStatus::COMPLETED);
+                $newWorkOrderStatus = WorkOrderStatus::COMPLETED;
+                $workOrder->setStatus($newWorkOrderStatus);
                 $this->workOrderRepository->save($workOrder);
 
-                $this->bus->dispatch(new EntityStatusChangedMessage(
+                $messages[] = new EntityStatusChangedMessage(
                     $workOrder->getId(),
                     WorkOrder::class,
                     $oldWorkOrderStatus,
-                    WorkOrderStatus::COMPLETED->label()
-                ));
+                    $newWorkOrderStatus->label()
+                );
             }
 
             $this->entityManager->commit();
         } catch (Throwable $e) {
             $this->entityManager->rollback();
             throw $e;
+        }
+
+        foreach ($messages as $message) {
+            $this->bus->dispatch($message);
         }
     }
 
@@ -148,25 +156,25 @@ class MilestoneService
         }
 
         $oldStatus = $milestone->getStatus()->label();
-        $milestone->setStatus(MilestoneStatus::REJECTED);
+        $newStatus = MilestoneStatus::REJECTED;
+        $milestone->setStatus($newStatus);
         $milestone->setReviewNote($dto->note);
         $milestone->setReviewedAt(new \DateTimeImmutable());
 
         $this->entityManager->beginTransaction();
         try {
             $this->milestoneRepository->save($milestone);
-
-            $this->bus->dispatch(new EntityStatusChangedMessage(
-                $milestone->getId(),
-                Milestone::class,
-                $oldStatus,
-                MilestoneStatus::REJECTED->label()
-            ));
-
             $this->entityManager->commit();
         } catch (Throwable $e) {
             $this->entityManager->rollback();
             throw $e;
         }
+
+        $this->bus->dispatch(new EntityStatusChangedMessage(
+            $milestone->getId(),
+            Milestone::class,
+            $oldStatus,
+            $newStatus->label()
+        ));
     }
 }

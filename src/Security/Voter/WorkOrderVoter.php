@@ -3,7 +3,6 @@
 namespace App\Security\Voter;
 
 use App\Entity\WorkOrder;
-use App\Enum\WorkOrderStatus;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
